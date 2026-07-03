@@ -1,44 +1,32 @@
+"""
+main.py
+App entrypoint. Run with:  uvicorn main:app --reload --port 8000
+"""
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(
-    title="AI Financial Manager API",
-    version="1.0.0"
-)
+from config import settings
+from database import init_db
+from routes import router
 
-# Allow frontend to access backend
+app = FastAPI(title="AI Financial Relationship Manager API")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Change to your frontend URL later
+    allow_origins=settings.cors_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+app.include_router(router)
+
+
+@app.on_event("startup")
+def on_startup():
+    init_db()
+
 
 @app.get("/")
-def home():
-    return {
-        "message": "Welcome to AI Financial Manager API",
-        "status": "Running"
-    }
-
-
-@app.get("/health")
-def health():
-    return {
-        "success": True,
-        "service": "Backend",
-        "status": "Healthy"
-    }
-
-
-@app.get("/api/v1")
-def api_info():
-    return {
-        "project": "AI Financial Manager",
-        "theme": "Agentic AI & Emerging Tech",
-        "version": "1.0.0"
-    }
-
- #remove dummy code
+def health_check():
+    return {"status": "ok", "service": "ai-financial-manager-backend"}
