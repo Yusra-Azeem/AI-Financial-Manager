@@ -7,8 +7,8 @@ HTTP endpoints. Two groups:
      agent runs inside this same FastAPI app, graph.py can just import
      agent.tools directly instead of hitting these routes.
 """
-from fastapi import APIRouter, Depends, HTTPException  # type: ignore[import]
-from sqlalchemy.orm import Session  # type: ignore[import]
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
 
 import models
 import schemas
@@ -80,3 +80,15 @@ def negotiate(payload: schemas.NegotiationRound, db: Session = Depends(get_db)):
         proposed_tenure=payload.proposed_tenure_months,
         round_number=payload.round_number,
     )
+
+
+# ---- RAG (policy explainability) ----
+
+@router.post("/agent/explain", response_model=schemas.ExplainResponse)
+def explain(payload: schemas.ExplainRequest, db: Session = Depends(get_db)):
+    """
+    Customer asks a free-text question like "why is my loan capped at this
+    amount?" and gets an answer grounded in the actual policy document,
+    with cited sections. Run `python build_index.py` once before using this.
+    """
+    return agent_tools.explain_policy(db, payload.question)

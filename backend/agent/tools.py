@@ -13,10 +13,9 @@ Functions expected by nodes.py, per the architecture doc:
     check_policy()
     ask_llm()
 """
-from services import finance, llm, policy
-from sqlalchemy.orm import Session  # type: ignore[import]
+from sqlalchemy.orm import Session
 
-from services import prediction
+from services import finance, prediction, policy, llm
 from services.llm import ask_llm as _ask_llm  # re-exported below
 
 # ---------------------------------------------------------------------------
@@ -201,3 +200,40 @@ def negotiate_counter_offer(loan_type: str, customer: dict, proposed_principal: 
 def ask_llm(prompt: str, system: str = "") -> str:
     """Re-exported so nodes.py only ever needs `from agent.tools import ask_llm, ...`"""
     return _ask_llm(prompt, system)
+
+
+def explain_policy(db: Session, question: str) -> dict:
+    """
+    RAG entry point. Used when a customer asks "why" about a decision
+    (e.g. "why is my loan capped?", "why this interest rate?"). Retrieves the
+    most relevant chunks of the loan policy document and asks the LLM to
+    answer using only that retrieved text, with citations back to the
+    section(s) used — so the answer is grounded in real policy, not invented.
+    """
+    from services import rag
+
+    chunks = rag.retrieve(db, question, top_k=3)
+
+    if not chunks:
+        return {
+            "answer": "I don't have the policy document indexed yet, so I can't answer that with certainty. Please contact support.",
+            "sources": [],
+        }
+
+    context = "\n\n".join(f"[{c['section']}]\n{c['content']}" for c in chunks)
+
+    system_prompt = (
+        "You are a bank assistant explaining lending policy to a customer. "
+        "Answer ONLY using the policy excerpts provided below. If the excerpts "
+        "don't fully answer the question, say what you can and note what's unclear. "
+        "Keep the answer to 2-4 sentences, plain language, no jargon. "
+        "Mention which policy section(s) you're drawing from.\n\n"
+        f"POLICY EXCERPTS:\n{context}"
+    )
+
+    answer = _ask_llm(prompt=question, system=system_prompt)
+
+    return {
+        "answer": answer,
+        "sources": [{"section": c["section"], "relevance": c["score"]} for c in chunks],
+    }

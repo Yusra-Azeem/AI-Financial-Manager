@@ -4,3 +4,29 @@ __pycache__/
 local_dev.db
 venv/
 *.egg-info/
+test.json
+# --- Secrets (never commit these) ---
+.env
+.env.local
+*.pem
+*.key
+
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+
+# --- Local database / test artifacts ---
+local_dev.db
+*.sqlite3
+test.json
+
+# --- Editor / OS junk ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

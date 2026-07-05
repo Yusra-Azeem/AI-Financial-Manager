@@ -78,3 +78,19 @@ class NegotiationRound(BaseModel):
     proposed_interest_rate: float
     proposed_tenure_months: int
     round_number: int = 1
+
+
+# ---- RAG ----
+
+class ExplainRequest(BaseModel):
+    question: str
+
+
+class ExplainSource(BaseModel):
+    section: str
+    relevance: float
+
+
+class ExplainResponse(BaseModel):
+    answer: str
+    sources: list[ExplainSource]

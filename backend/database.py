@@ -4,7 +4,7 @@ Sets up the SQLAlchemy engine + session, pointed at Supabase Postgres (or local
 sqlite if you set DATABASE_URL to a sqlite:/// path in .env for quick testing).
 """
 from sqlalchemy import create_engine
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.orm import sessionmaker, declarative_base
 
 from config import settings
 

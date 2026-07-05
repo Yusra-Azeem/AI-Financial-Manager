@@ -86,3 +86,25 @@ class LifeEvent(Base):
     evidence = Column(Text, default="")            # short text explaining why it was detected
 
     customer = relationship("Customer", back_populates="life_events")
+
+
+class PolicyChunk(Base):
+    """
+    RAG storage for the loan policy document. Each row is one chunk of
+    policy text plus its embedding vector, stored as a JSON string so this
+    works on both sqlite (local dev) and Postgres/Supabase without requiring
+    the pgvector extension. Similarity search happens in Python
+    (services/rag.py) via cosine similarity.
+
+    To upgrade to native pgvector on Supabase for larger-scale search, swap
+    `embedding` for a `sqlalchemy.dialects.postgresql.ARRAY(Float)` or the
+    `pgvector.sqlalchemy.Vector` column type, enable the pgvector extension
+    (`create extension vector;`), and do the similarity search in SQL instead.
+    """
+    __tablename__ = "policy_chunks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    source = Column(String, default="loan_policy.md")
+    section = Column(String, default="")     # e.g. "Education Loans" - helps citations
+    content = Column(Text, nullable=False)
+    embedding = Column(Text, nullable=False)  # JSON-encoded list[float]
