@@ -30,3 +30,6 @@ test.json
 .idea/
 .DS_Store
 Thumbs.db
+
+../.vscode/
+../documentation/
