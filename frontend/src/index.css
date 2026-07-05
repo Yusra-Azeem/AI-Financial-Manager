@@ -705,4 +705,7 @@ button {
   box-shadow: 0 0 0 3px rgba(67, 122, 83, 0.12);
 }
 
-.chat-input-row input::place
+.chat-input-row input::placeholder {
+  color: var(--ink-500);
+  opacity: 0.6;
+}
