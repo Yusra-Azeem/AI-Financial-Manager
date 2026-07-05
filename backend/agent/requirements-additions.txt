@@ -1,0 +1,11 @@
+# --- Add these to backend/requirements.txt (Roshni's file already covers
+#     fastapi, sqlalchemy, uvicorn, the DB driver, etc.) -----------------
+
+langgraph>=0.2.0
+langgraph-checkpoint>=1.0.0
+langgraph-checkpoint-sqlite>=1.0.0     # dev/single-worker checkpoint backend
+langgraph-checkpoint-postgres>=1.0.0   # production checkpoint backend
+psycopg[binary,pool]>=3.1              # required by langgraph-checkpoint-postgres
+
+# Production server (Dockerfile CMD uses gunicorn + uvicorn workers)
+gunicorn>=22.0.0
