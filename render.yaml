@@ -1,0 +1,68 @@
+# Render Blueprint — deploy with "New +" -> "Blueprint" pointing at this repo.
+# Docs: https://render.com/docs/blueprint-spec
+#
+# Native runtimes only, no Docker:
+#   1. fin-rm-backend  — FastAPI + LangGraph agent (Python runtime)
+#   2. fin-rm-frontend — Vite/React (static site runtime)
+#   3. fin-rm-db       — managed Postgres (skip this block and use your
+#                        existing Supabase DATABASE_URL instead, if you
+#                        already have one — just delete the `databases:`
+#                        section and set DATABASE_URL manually as a secret)
+
+databases:
+  - name: fin-rm-db
+    plan: starter
+    region: oregon
+
+services:
+  - type: web
+    name: fin-rm-backend
+    runtime: python
+    rootDir: backend
+    plan: starter
+    region: oregon
+    buildCommand: "pip install -r requirements.txt -r agent/requirements-additions.txt"
+    # Render injects $PORT — bind to it, don't hardcode 8000.
+    startCommand: "gunicorn main:app -k uvicorn.workers.UvicornWorker -w 2 -b 0.0.0.0:$PORT --timeout 120"
+    healthCheckPath: /docs
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.0"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: fin-rm-db
+          property: connectionString
+      # LangGraph MUST use the postgres checkpoint backend on Render:
+      # the filesystem is ephemeral (sqlite checkpoints vanish on every
+      # deploy/restart) and if you ever scale past 1 instance, in-memory
+      # or per-instance sqlite checkpoints won't be shared across them.
+      - key: CHECKPOINT_BACKEND
+        value: postgres
+      - key: LLM_PROVIDER
+        value: gemini # or openai — must match config.py's expected values
+      - key: GEMINI_API_KEY
+        sync: false # set manually in the Render dashboard (secret)
+      - key: OPENAI_API_KEY
+        sync: false
+      # Comma-separated list your FastAPI CORS middleware should read from
+      # (see note in agent/README.md — add this to main.py's CORS config).
+      - key: ALLOWED_ORIGINS
+        value: https://fin-rm-frontend.onrender.com
+
+  - type: web
+    name: fin-rm-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: https://fin-rm-backend.onrender.com # update after first backend deploy if the URL differs
+      - key: VITE_USE_MOCK
+        value: "false"
+      - key: VITE_DEMO_CUSTOMER_ID
+        value: "1"
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
